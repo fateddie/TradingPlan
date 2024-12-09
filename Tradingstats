@@ -1,0 +1,52 @@
+import pandas as pd
+import os
+
+
+def read_latest_csv(directory, file_prefix):
+    """Read the latest CSV file from a specified directory with a given prefix."""
+    files = [f for f in os.listdir(directory) if f.startswith(
+        file_prefix) and f.endswith('.csv')]
+    if not files:
+        raise FileNotFoundError(f"No files found with prefix '{
+                                file_prefix}' in directory '{directory}'.")
+    latest_file = max([os.path.join(directory, f)
+                      for f in files], key=os.path.getmtime)
+    return pd.read_csv(latest_file)
+
+
+def calculate_drawdown(df):
+    """Calculate drawdown for a given trade history dataframe."""
+    df['Cumulative P&L'] = df['Profit'].cumsum()
+    df['Cumulative Max'] = df['Cumulative P&L'].cummax()
+    df['Drawdown'] = df['Cumulative P&L'] - df['Cumulative Max']
+    df['Drawdown (%)'] = (df['Drawdown'] / df['Cumulative Max']) * 100
+    return df
+
+
+def display_drawdown_summary(df):
+    """Display drawdown summary for trades."""
+    max_drawdown = df['Drawdown'].min()
+    max_drawdown_percent = df['Drawdown (%)'].min()
+    print(f"Maximum Drawdown: {max_drawdown:.2f}")
+    print(f"Maximum Drawdown Percentage: {max_drawdown_percent:.2f}%")
+    print("\nTop 5 Drawdowns:")
+    print(df.nsmallest(5, 'Drawdown'))
+
+
+def main():
+    # Configure your directory and file prefix
+    data_directory = '/Users/robertfreyne/Documents/TradingData'
+    file_prefix = 'pepperstone-history'
+
+    # Read the latest CSV file
+    df = read_latest_csv(data_directory, file_prefix)
+
+    # Calculate drawdown
+    df = calculate_drawdown(df)
+
+    # Display drawdown summary
+    display_drawdown_summary(df)
+
+
+if __name__ == "__main__":
+    main()
